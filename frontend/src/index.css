@@ -199,16 +199,27 @@ input, select, textarea {
 .badge-luxury {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background-color: rgba(201, 181, 139, 0.15);
+  gap: 8px;
+  padding: 6px 16px;
+  background-color: rgba(201, 181, 139, 0.22);
   border: 1px solid var(--color-accent);
-  color: var(--color-primary);
+  color: var(--color-accent) !important;
   border-radius: 9999px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.properties-header-banner .badge-luxury,
+.about-hero-banner .badge-luxury,
+.hero-content .badge-luxury,
+.client-header-hero .badge-luxury {
+  color: #C9B58B !important;
+  border-color: #C9B58B !important;
+  background-color: rgba(201, 181, 139, 0.25) !important;
 }
 
 .badge-client {
@@ -228,3 +239,10 @@ input, select, textarea {
   color: #6D28D9;
   border: 1px solid #DDD6FE;
 }
+
+/* Universal Properties Grid */
+.properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 30px;
+}

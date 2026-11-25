@@ -1,50 +1,61 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import AppointmentModal from '../components/AppointmentModal';
+import PaymentGatewayModal from '../components/PaymentGatewayModal';
 import PropertyCard from '../components/PropertyCard';
 import {
   MapPin, BedDouble, Bath, Maximize, Calendar, Phone, Mail,
-  CheckCircle2, ShieldCheck, ArrowLeft, Share2, Heart, Award,
-  Building2, Sparkles, Clock, Check
+  CheckCircle2, ShieldCheck, ArrowLeft, Share2, Award,
+  Building2, Check, CreditCard, Key
 } from 'lucide-react';
 import './PropertyDetails.css';
 
 const PropertyDetails = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const [property, setProperty] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGatewayOpen, setIsGatewayOpen] = useState(false);
+  const [gatewayDealType, setGatewayDealType] = useState('Sale');
+  const [gatewayAmount, setGatewayAmount] = useState(0);
   const [similarProperties, setSimilarProperties] = useState([]);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchProperty = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const data = await api.getPropertyById(id);
-        setProperty(data);
-        setActiveImageIndex(0);
+  const fetchProperty = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await api.getPropertyById(id);
+      setProperty(data);
+      setActiveImageIndex(0);
 
-        // Fetch related properties in same location
-        if (data.location) {
-          const all = await api.getProperties({ location: data.location });
-          setSimilarProperties(all.filter(p => p.property_id !== Number(id)).slice(0, 3));
-        }
-      } catch (err) {
-        setError('Property not found or failed to load.');
-        console.error(err);
-      } finally {
-        setLoading(false);
+      // Fetch related properties in same location
+      if (data.location) {
+        const all = await api.getProperties({ location: data.location });
+        setSimilarProperties(all.filter(p => p.property_id !== Number(id)).slice(0, 3));
       }
-    };
+    } catch (err) {
+      setError('Property not found or failed to load.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProperty();
     window.scrollTo(0, 0);
   }, [id]);
+
+  const handleOpenCheckout = (mode) => {
+    setCheckoutMode(mode);
+    setIsCheckoutOpen(true);
+  };
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -136,15 +147,47 @@ const PropertyDetails = () => {
           </div>
 
           <div className="details-price-col">
-            <span className="price-label">Official Guide Price</span>
+            <span className="price-label">{property.listing_type === 'Rent' ? 'Rental Value' : 'Official Guide Price'}</span>
             <h2 className="details-price-val">{priceDisplay}</h2>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="btn btn-primary btn-book-appointment"
-            >
-              <Calendar size={18} />
-              <span>Book Private Viewing</span>
-            </button>
+            
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {property.status === 'Available' ? (
+                <>
+                  <button
+                    onClick={() => handleOpenCheckout('buy')}
+                    className="btn btn-primary btn-book-appointment"
+                    style={{ padding: '10px 18px', fontWeight: '700' }}
+                    title="Purchase this property via secure escrow"
+                  >
+                    <CreditCard size={18} />
+                    <span>Buy Property</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenCheckout('rent')}
+                    className="btn btn-accent btn-book-appointment"
+                    style={{ padding: '10px 18px', fontWeight: '700' }}
+                    title="Lease this property"
+                  >
+                    <Key size={18} />
+                    <span>Rent Property</span>
+                  </button>
+                </>
+              ) : (
+                <div className="badge-luxury" style={{ padding: '8px 16px', background: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B' }}>
+                  ✓ Acquired / {property.status}
+                </div>
+              )}
+
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="btn btn-outline btn-book-appointment"
+                style={{ padding: '10px 18px' }}
+              >
+                <Calendar size={18} />
+                <span>Book Viewing</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -284,10 +327,36 @@ const PropertyDetails = () => {
                 )}
               </div>
 
-              <div className="agent-actions">
+              <div className="agent-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {property.status === 'Available' ? (
+                  <>
+                    <button
+                      onClick={() => handleOpenCheckout('buy')}
+                      className="btn btn-primary w-full"
+                      style={{ padding: '12px', fontWeight: '700' }}
+                    >
+                      <CreditCard size={17} />
+                      <span>Buy Property (Checkout)</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenCheckout('rent')}
+                      className="btn btn-accent w-full"
+                      style={{ padding: '12px', fontWeight: '700' }}
+                    >
+                      <Key size={17} />
+                      <span>Rent / Lease Option</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="badge-luxury" style={{ padding: '10px', textAlign: 'center', background: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B' }}>
+                    ✓ This Property is {property.status}
+                  </div>
+                )}
+
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="btn btn-primary w-full"
+                  className="btn btn-outline w-full"
                 >
                   <Calendar size={16} />
                   <span>Book Private Appointment</span>
@@ -337,6 +406,15 @@ const PropertyDetails = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         property={property}
+      />
+
+      {/* Buy & Rent Checkout Modal */}
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        property={property}
+        initialMode={checkoutMode}
+        onSuccess={fetchProperty}
       />
     </div>
   );

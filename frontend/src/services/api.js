@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const api = {
   // Properties
@@ -212,6 +212,19 @@ export const api = {
     return res.json();
   },
 
+  processPayment: async (data) => {
+    const res = await fetch(`${API_BASE_URL}/payments/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Payment gateway failed to process transaction');
+    }
+    return res.json();
+  },
+
   deletePayment: async (id) => {
     const res = await fetch(`${API_BASE_URL}/payments/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete payment');
@@ -262,6 +275,20 @@ export const api = {
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Failed to update profile');
+    return res.json();
+  },
+
+  // Image / File Upload
+  uploadImage: async (base64Data, filename) => {
+    const res = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64Data, filename }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to upload image file');
+    }
     return res.json();
   }
 };

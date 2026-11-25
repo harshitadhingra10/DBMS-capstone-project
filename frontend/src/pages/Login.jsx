@@ -133,7 +133,7 @@ export default function Login() {
           {/* Quick 1-Click Demo Credentials */}
           <div className="demo-credentials-box">
             <span className="demo-title">⚡ 1-Click Quick Demo Access</span>
-            <div className="demo-buttons-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className="demo-buttons-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <button
                 type="button"
                 className="demo-btn"
@@ -146,19 +146,28 @@ export default function Login() {
               <button
                 type="button"
                 className="demo-btn"
-                onClick={() => handleQuickDemo('nishtha@estateease.com', 'temp_password_2')}
+                onClick={() => handleQuickDemo('harshita@estateease.com', 'agent123')}
               >
                 <strong>💼 Agent</strong>
-                <small>Agent Portal</small>
+                <small>Harshita</small>
               </button>
 
               <button
                 type="button"
                 className="demo-btn"
-                onClick={() => handleQuickDemo('harshita@estateease.com', 'temp_password_1')}
+                onClick={() => handleQuickDemo('priyam@estateease.com', 'agent123')}
+              >
+                <strong>💼 Agent</strong>
+                <small>Priyam</small>
+              </button>
+
+              <button
+                type="button"
+                className="demo-btn"
+                onClick={() => handleQuickDemo('sandeep@estateease.com', 'admin123')}
               >
                 <strong>🛡️ Admin</strong>
-                <small>Full Analytics</small>
+                <small>Sandeep</small>
               </button>
             </div>
           </div>

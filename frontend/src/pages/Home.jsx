@@ -1,29 +1,34 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Building, ShieldCheck, Award, Users, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
+import { Search, MapPin, Building, ShieldCheck, Award, Users, ChevronRight, ArrowRight, Sparkles, Gem, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 import PropertyCard from '../components/PropertyCard';
 import './Home.css';
 
 export default function Home() {
+  const [allProperties, setAllProperties] = useState([]);
   const [featuredProperties, setFeaturedProperties] = useState([]);
+  const [recommendedProperties, setRecommendedProperties] = useState([]);
+  const [recFilter, setRecFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [searchCity, setSearchCity] = useState('');
   const [searchType, setSearchType] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchFeatured = async () => {
+    const fetchPropertiesData = async () => {
       try {
         const data = await api.getProperties({ status: 'Available' });
-        setFeaturedProperties(data.slice(0, 6));
+        setAllProperties(data);
+        setFeaturedProperties(data.slice(0, 3));
+        setRecommendedProperties(data);
       } catch (err) {
-        console.error('Failed to load featured properties:', err);
+        console.error('Failed to load home properties:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchFeatured();
+    fetchPropertiesData();
   }, []);
 
   const handleSearch = (e) => {
@@ -33,6 +38,10 @@ export default function Home() {
     if (searchType) params.append('property_type', searchType);
     navigate(`/properties?${params.toString()}`);
   };
+
+  const filteredRecommendations = recFilter === 'All'
+    ? recommendedProperties.slice(0, 6)
+    : recommendedProperties.filter(p => p.property_type === recFilter).slice(0, 6);
 
   const cities = [
     { name: 'Gurugram', desc: 'Golf Course Rd, Cyber Hub & Southern Periphery', count: '14+ Estates' },
@@ -47,7 +56,7 @@ export default function Home() {
       <section className="hero-section">
         <div className="hero-overlay"></div>
         <div className="hero-content">
-          <span className="hero-badge">
+          <span className="badge-luxury">
             <Sparkles size={14} /> North India's Ultra-Luxury Real Estate
           </span>
           <h1 className="hero-title">
@@ -79,7 +88,8 @@ export default function Home() {
                 <option value="Penthouse">Penthouse</option>
                 <option value="Villa">Luxury Villa</option>
                 <option value="Apartment">Designer Apartment</option>
-                <option value="Independent Floor">Bespoke Floor</option>
+                <option value="House">Bespoke House</option>
+                <option value="Commercial">Commercial Asset</option>
               </select>
             </div>
 
@@ -112,13 +122,96 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURED PROPERTIES */}
+      {/* RECOMMENDED PROPERTIES (NEW DEDICATED SECTION) */}
+      <section className="recommended-home-section">
+        <div className="container">
+          <div className="section-head text-center" style={{ marginBottom: '24px' }}>
+            <span className="badge-luxury" style={{ color: 'var(--color-primary) !important', borderColor: 'var(--color-accent)' }}>
+              <Gem size={14} /> Curated Exclusively For You
+            </span>
+            <h2 className="section-heading" style={{ fontSize: '2.6rem', marginTop: '12px' }}>
+              Recommended Luxury Residences
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', maxWidth: '680px', margin: '0 auto', fontSize: '1.05rem' }}>
+              Handpicked estates evaluated for high capital appreciation, architectural mastery, and prime Delhi NCR connectivity.
+            </p>
+          </div>
+
+          {/* Interactive Recommendation Filter Pills */}
+          <div className="rec-pills-bar">
+            {[
+              { id: 'All', label: 'All Curated Picks' },
+              { id: 'Villa', label: 'Luxury Villas' },
+              { id: 'Apartment', label: 'Designer Apartments' },
+              { id: 'House', label: 'Premium Houses' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`rec-pill-btn ${recFilter === tab.id ? 'active' : ''}`}
+                onClick={() => setRecFilter(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="loading-state">Curating bespoke recommendations...</div>
+          ) : filteredRecommendations.length === 0 ? (
+            <div className="no-data-text">No residences available in this category currently.</div>
+          ) : (
+            <div className="properties-grid">
+              {filteredRecommendations.map((prop) => (
+                <PropertyCard key={prop.property_id} property={prop} />
+              ))}
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+            <Link to="/properties" className="btn btn-primary" style={{ padding: '12px 32px' }}>
+              <span>View All Verified Properties</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* LIST YOUR PROPERTY CTA BANNER (NEW PROMINENT OWNER / AGENT SECTION) */}
+      <section className="list-property-cta-section">
+        <div className="container">
+          <div className="list-cta-box">
+            <div className="list-cta-content">
+              <span className="badge-luxury" style={{ color: 'var(--color-accent)', borderColor: 'var(--color-accent)' }}>
+                <Sparkles size={14} /> Owner & Investor Advisory
+              </span>
+              <h2>Own a Landmark Residence in Delhi NCR?</h2>
+              <p>
+                Market your penthouse, villa, or commercial estate directly to our exclusive network of vetted ultra-high-net-worth patrons and institutional buyers.
+              </p>
+              <div className="list-cta-features">
+                <span>✓ 100% Confidential Marketing</span>
+                <span>✓ Verified Client Inquiries</span>
+                <span>✓ Zero Upfront Listing Fees</span>
+              </div>
+            </div>
+            <div className="list-cta-action">
+              <Link to="/list-property" className="btn btn-accent btn-large-cta">
+                <PlusCircle size={20} />
+                <span>List Your Property Now</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED PROPERTIES HIGHLIGHT */}
       <section className="featured-section">
         <div className="container">
           <div className="section-head">
             <div>
               <span className="section-tag">Handpicked Selection</span>
-              <h2 className="section-heading">Featured Luxury Residences</h2>
+              <h2 className="section-heading">Featured Landmark Residences</h2>
             </div>
             <Link to="/properties" className="view-all-link">
               Explore All Properties <ArrowRight size={16} />

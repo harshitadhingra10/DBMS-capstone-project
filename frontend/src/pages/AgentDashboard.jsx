@@ -39,6 +39,17 @@ const AgentDashboard = () => {
     image_url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80'
   });
 
+  // Record Transaction Modal State
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [txData, setTxData] = useState({
+    property_id: '',
+    client_id: '',
+    transaction_type: 'Sale',
+    amount: '',
+    status: 'Completed',
+    transaction_date: new Date().toISOString().slice(0, 10)
+  });
+
   const showFeedback = (type, text) => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback({ type: '', text: '' }), 4000);
@@ -48,9 +59,14 @@ const AgentDashboard = () => {
     try {
       setLoading(true);
       // Use agent_id from user session, fallback to 1 if not present
-      const agentId = user?.agent_id || 1;
+      const agentId = user?.agent_id || user?.user_id || 1;
       const data = await api.getAgentDashboardData(agentId);
-      setAgentData(data);
+      setAgentData({
+        properties: data.properties || [],
+        appointments: data.appointments || [],
+        transactions: data.transactions || [],
+        clients: data.clients || []
+      });
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Unable to retrieve agent data from server.');
@@ -101,10 +117,55 @@ const AgentDashboard = () => {
     }
   };
 
-  const totalAssignedProps = agentData.properties.length;
-  const totalAppointments = agentData.appointments.length;
-  const totalTransactions = agentData.transactions.length;
-  const totalVolume = agentData.transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  // Handle Record Transaction
+  const handleCreateTransaction = async (e) => {
+    e.preventDefault();
+    try {
+      if (!txData.property_id || !txData.client_id || !txData.amount) {
+        showFeedback('error', 'Please select a property, client, and enter transaction amount.');
+        return;
+      }
+      await api.createTransaction({
+        ...txData,
+        agent_id: user?.agent_id || 1
+      });
+      showFeedback('success', 'Real estate transaction successfully recorded in database!');
+      setIsTxModalOpen(false);
+      setTxData({
+        property_id: '',
+        client_id: '',
+        transaction_type: 'Sale',
+        amount: '',
+        status: 'Completed',
+        transaction_date: new Date().toISOString().slice(0, 10)
+      });
+      loadAgentDashboard();
+    } catch (err) {
+      showFeedback('error', err.message || 'Failed to record transaction.');
+    }
+  };
+
+  // Handle Update Transaction Status
+  const handleUpdateTxStatus = async (txId, newStatus) => {
+    try {
+      await api.updateTransaction(txId, { status: newStatus });
+      showFeedback('success', `Transaction #${txId} status changed to ${newStatus}.`);
+      loadAgentDashboard();
+    } catch (err) {
+      showFeedback('error', err.message || 'Failed to update transaction status.');
+    }
+  };
+
+  const safeProps = agentData?.properties || [];
+  const safeAppts = agentData?.appointments || [];
+  const safeTxs = agentData?.transactions || [];
+  const safeClients = agentData?.clients || [];
+
+  const totalAssignedProps = safeProps.length;
+  const totalAppointments = safeAppts.length;
+  const totalTransactions = safeTxs.length;
+  const totalVolume = safeTxs.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  const totalClients = safeClients.length;
 
   return (
     <div className="dashboard-root">
@@ -160,7 +221,7 @@ const AgentDashboard = () => {
               <span className="metric-label">Managed Clients</span>
               <div className="metric-icon"><Users size={20} /></div>
             </div>
-            <div className="metric-val">{agentData.clients.length}</div>
+            <div className="metric-val">{totalClients}</div>
             <span className="metric-sub">Direct buyers & tenants</span>
           </div>
 
@@ -192,7 +253,7 @@ const AgentDashboard = () => {
             className={`tab-btn ${activeTab === 'clients' ? 'active' : ''}`}
             onClick={() => setActiveTab('clients')}
           >
-            My Clients ({agentData.clients.length})
+            My Clients ({totalClients})
           </button>
           <button
             className={`tab-btn ${activeTab === 'transactions' ? 'active' : ''}`}
@@ -231,14 +292,14 @@ const AgentDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {agentData.properties.length === 0 ? (
+                    {safeProps.length === 0 ? (
                       <tr>
                         <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
                           No properties assigned to your account yet. Click "Add Listing" above to publish one!
                         </td>
                       </tr>
                     ) : (
-                      agentData.properties.map((p) => (
+                      safeProps.map((p) => (
                         <tr key={p.property_id}>
                           <td style={{ width: '60px' }}>
                             <img
@@ -310,14 +371,14 @@ const AgentDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {agentData.appointments.length === 0 ? (
+                    {safeAppts.length === 0 ? (
                       <tr>
                         <td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>
                           No appointments booked for your properties currently.
                         </td>
                       </tr>
                     ) : (
-                      agentData.appointments.map((a) => (
+                      safeAppts.map((a) => (
                         <tr key={a.appointment_id}>
                           <td>#{a.appointment_id}</td>
                           <td><strong>{a.client_name || 'Client'}</strong></td>
@@ -377,14 +438,14 @@ const AgentDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {agentData.clients.length === 0 ? (
+                    {safeClients.length === 0 ? (
                       <tr>
                         <td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>
                           No direct clients associated with this agent yet.
                         </td>
                       </tr>
                     ) : (
-                      agentData.clients.map((c) => (
+                      safeClients.map((c) => (
                         <tr key={c.client_id}>
                           <td>#{c.client_id}</td>
                           <td><strong>{c.client_name}</strong></td>
@@ -410,6 +471,9 @@ const AgentDashboard = () => {
                 <h2>My Transactions & Closures</h2>
                 <p>Deals and leases finalized under your advisory mandate.</p>
               </div>
+              <button onClick={() => setIsTxModalOpen(true)} className="btn btn-primary btn-sm">
+                <Plus size={16} /> Record New Deal / Transaction
+              </button>
             </div>
 
             <div className="dashboard-panel-card">
@@ -424,28 +488,41 @@ const AgentDashboard = () => {
                       <th>Transaction Amount</th>
                       <th>Date</th>
                       <th>Status</th>
+                      <th>Update Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {agentData.transactions.length === 0 ? (
+                    {safeTxs.length === 0 ? (
                       <tr>
-                        <td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>
-                          No closed transactions recorded for your agent ID yet.
+                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
+                          No closed transactions recorded for your agent ID yet. Click "Record New Deal" above!
                         </td>
                       </tr>
                     ) : (
-                      agentData.transactions.map((t) => (
+                      safeTxs.map((t) => (
                         <tr key={t.transaction_id}>
                           <td>#{t.transaction_id}</td>
                           <td><strong>{t.property_title || `Prop #${t.property_id}`}</strong></td>
-                          <td>{t.client_name}</td>
+                          <td>{t.client_name || 'VIP Client'}</td>
                           <td><span className="badge badge-sale">{t.transaction_type}</span></td>
                           <td><strong>₹{Number(t.amount).toLocaleString('en-IN')}</strong></td>
                           <td>{new Date(t.transaction_date).toLocaleDateString()}</td>
                           <td>
-                            <span className={`badge ${t.status === 'Completed' ? 'badge-available' : 'badge-rent'}`}>
+                            <span className={`badge ${t.status === 'Completed' ? 'badge-available' : (t.status === 'Cancelled' ? 'badge-sold' : 'badge-rent')}`}>
                               {t.status}
                             </span>
+                          </td>
+                          <td>
+                            <select
+                              value={t.status}
+                              onChange={(e) => handleUpdateTxStatus(t.transaction_id, e.target.value)}
+                              className="table-select-status"
+                              style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.82rem', border: '1px solid #D1D5DB' }}
+                            >
+                              <option value="Pending">Pending</option>
+                              <option value="Completed">Completed</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
                           </td>
                         </tr>
                       ))
@@ -626,6 +703,124 @@ const AgentDashboard = () => {
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm">
                   Add to My Listings
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal: Record Transaction */}
+      {isTxModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsTxModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div className="modal-header">
+              <h3>Record Real Estate Transaction</h3>
+              <button className="modal-close-btn" onClick={() => setIsTxModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTransaction} className="modal-form">
+              <div className="form-group">
+                <label>Select Property *</label>
+                <select
+                  className="form-control"
+                  value={txData.property_id}
+                  onChange={(e) => {
+                    const propId = e.target.value;
+                    const chosenProp = safeProps.find(p => String(p.property_id) === String(propId));
+                    setTxData({
+                      ...txData,
+                      property_id: propId,
+                      amount: chosenProp ? chosenProp.price : txData.amount
+                    });
+                  }}
+                  required
+                >
+                  <option value="">-- Choose Assigned Property --</option>
+                  {safeProps.map(p => (
+                    <option key={p.property_id} value={p.property_id}>
+                      #{p.property_id} - {p.title} (₹{Number(p.price).toLocaleString('en-IN')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Select Buyer / Client *</label>
+                <select
+                  className="form-control"
+                  value={txData.client_id}
+                  onChange={(e) => setTxData({ ...txData, client_id: e.target.value })}
+                  required
+                >
+                  <option value="">-- Choose Client --</option>
+                  {safeClients.map(c => (
+                    <option key={c.client_id} value={c.client_id}>
+                      #{c.client_id} - {c.client_name} ({c.email || c.phone || 'Client'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Transaction Type</label>
+                  <select
+                    className="form-control"
+                    value={txData.transaction_type}
+                    onChange={(e) => setTxData({ ...txData, transaction_type: e.target.value })}
+                  >
+                    <option value="Sale">Sale (Purchase)</option>
+                    <option value="Rent">Lease / Rent</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Deal Status</label>
+                  <select
+                    className="form-control"
+                    value={txData.status}
+                    onChange={(e) => setTxData({ ...txData, status: e.target.value })}
+                  >
+                    <option value="Completed">Completed (Finalized)</option>
+                    <option value="Pending">Pending Escrow</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Final Deal Value (₹ INR) *</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 8500000"
+                    value={txData.amount}
+                    onChange={(e) => setTxData({ ...txData, amount: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Transaction Date *</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={txData.transaction_date}
+                    onChange={(e) => setTxData({ ...txData, transaction_date: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setIsTxModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm">
+                  Confirm & Save Deal
                 </button>
               </div>
             </form>

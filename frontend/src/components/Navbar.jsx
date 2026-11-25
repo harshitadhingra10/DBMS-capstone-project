@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, User, LogOut, Shield, Briefcase, Calendar, Menu, X, ArrowRight } from 'lucide-react';
+import { Building2, User, LogOut, Shield, Briefcase, Calendar, Menu, X, PlusCircle } from 'lucide-react';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -23,16 +23,19 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
+  // Clean user display name if it contains bracketed roles like "Nishtha (Client)"
+  const cleanName = user?.name ? user.name.replace(/\s*\([^)]*\)/g, '').trim() : 'User';
+
   return (
     <header className="navbar-header">
-      <div className="container navbar-container">
-        {/* Brand Logo */}
+      <div className="navbar-container">
+        {/* Left: Brand Logo */}
         <Link to="/" className="navbar-logo">
-          <span className="logo-icon"><Building2 size={24} /></span>
+          <span className="logo-icon"><Building2 size={22} /></span>
           <span className="logo-text">Estate<span className="logo-accent">Ease</span></span>
         </Link>
 
-        {/* Navigation Links */}
+        {/* Center: Navigation Links */}
         <nav className="navbar-links">
           <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Home</Link>
           <Link to="/properties" className={`nav-link ${isActive('/properties') ? 'active' : ''}`}>Properties</Link>
@@ -41,25 +44,32 @@ export default function Navbar() {
           <Link to="/contact" className={`nav-link ${isActive('/contact') ? 'active' : ''}`}>Contact</Link>
         </nav>
 
-        {/* Auth / Profile Actions */}
+        {/* Right: Actions */}
         <div className="navbar-actions">
+          <Link to="/list-property" className="btn-nav-list" title="List your property with EstateEase">
+            <PlusCircle size={15} />
+            <span>List Property</span>
+          </Link>
+
           {isAuthenticated ? (
             <div className="user-profile-menu">
-              <Link to={getDashboardPath()} className="btn btn-primary dashboard-btn">
-                {isAdmin && <Shield size={16} />}
-                {isAgent && <Briefcase size={16} />}
-                {isClient && <Calendar size={16} />}
+              <Link to={getDashboardPath()} className="btn-nav-dashboard" title="Open Your Dashboard">
+                {isAdmin && <Shield size={14} />}
+                {isAgent && <Briefcase size={14} />}
+                {isClient && <Calendar size={14} />}
                 <span>{isAdmin ? 'Admin Console' : (isAgent ? 'Agent Portal' : 'Client Lounge')}</span>
               </Link>
-              <div className="user-badge-container">
-                <div className="user-avatar">{user?.name ? user.name[0].toUpperCase() : 'U'}</div>
+
+              <Link to={getDashboardPath()} className="user-badge-container" title={`${cleanName} (${user?.role})`}>
+                <div className="user-avatar">{cleanName[0]?.toUpperCase() || 'U'}</div>
                 <div className="user-info">
-                  <span className="user-name">{user?.name}</span>
+                  <span className="user-name">{cleanName}</span>
                   <span className={`badge-role ${user?.role?.toLowerCase()}`}>{user?.role}</span>
                 </div>
-              </div>
+              </Link>
+
               <button onClick={handleLogout} className="logout-btn" title="Sign Out">
-                <LogOut size={18} />
+                <LogOut size={15} />
               </button>
             </div>
           ) : (
@@ -70,7 +80,7 @@ export default function Navbar() {
           )}
 
           {/* Mobile hamburger */}
-          <button className="mobile-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button className="mobile-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle Menu">
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -84,6 +94,9 @@ export default function Navbar() {
           <Link to="/locations" className="mobile-link" onClick={() => setMobileMenuOpen(false)}>Locations</Link>
           <Link to="/about" className="mobile-link" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
           <Link to="/contact" className="mobile-link" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+          <Link to="/list-property" className="mobile-link" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--color-accent-dark)', fontWeight: '700' }}>
+            + List Your Property
+          </Link>
           
           <div className="mobile-drawer-auth">
             {isAuthenticated ? (

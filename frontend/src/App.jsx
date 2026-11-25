@@ -11,6 +11,7 @@ import Locations from './pages/Locations';
 import LocationDetail from './pages/LocationDetail';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import ListProperty from './pages/ListProperty';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
@@ -52,6 +53,7 @@ export default function App() {
               <Route path="/locations/:cityName" element={<LocationDetail />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/list-property" element={<ListProperty />} />
 
               {/* Authentication */}
               <Route path="/login" element={<Login />} />
