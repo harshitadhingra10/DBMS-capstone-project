@@ -52,11 +52,11 @@ const PropertyDetails = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  const handleOpenCheckout = (mode) => {
-    setCheckoutMode(mode);
-    setIsCheckoutOpen(true);
-  };
-
+ const handleOpenCheckout = (mode) => {
+  setGatewayDealType(mode === 'rent' ? 'Rent' : 'Sale');
+  setGatewayAmount(Number(property.price));
+  setIsGatewayOpen(true);
+};
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
     setCopied(true);
@@ -409,13 +409,15 @@ const PropertyDetails = () => {
       />
 
       {/* Buy & Rent Checkout Modal */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        property={property}
-        initialMode={checkoutMode}
-        onSuccess={fetchProperty}
-      />
+      <PaymentGatewayModal
+  isOpen={isGatewayOpen}
+  onClose={() => setIsGatewayOpen(false)}
+  property={property}
+  amount={gatewayAmount}
+  dealType={gatewayDealType}
+  clientDetails={user}
+  onPaymentSuccess={fetchProperty}
+/>
     </div>
   );
 };
